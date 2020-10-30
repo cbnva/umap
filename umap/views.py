@@ -443,6 +443,10 @@ class PermissionsMixin:
                 'id': editor.pk,
                 'name': editor.get_username(),
             } for editor in self.object.editors.all()]
+            permissions['viewers'] = [{
+                'id': editor.pk,
+                'name': editor.get_username(),
+            } for editor in self.object.viewers.all()]
         if (not self.object.owner
            and self.object.is_anonymous_owner(self.request)):
             permissions['anonymous_edit_url'] = self.get_anonymous_edit_url()

@@ -5,6 +5,7 @@ L.U.MapPermissions = L.Class.extend({
     options: {
         owner: null,
         editors: [],
+        viewers: [],
         share_status: null,
         edit_status: null
     },
@@ -64,6 +65,7 @@ L.U.MapPermissions = L.Class.extend({
                 fields.push(['options.owner', {handler: 'ManageOwner', label: L._("Map's owner")}]);
             }
             fields.push(['options.editors', {handler: 'ManageEditors', label: L._("Map's editors")}]);
+            fields.push(['options.viewers', {handler: 'ManageEditors', label: L._("Map's viewers")}]);
         }
         title.textContent = L._('Update permissions');
         var builder = new L.U.FormBuilder(this, fields);
@@ -101,6 +103,10 @@ L.U.MapPermissions = L.Class.extend({
         if (!this.isAnonymousMap() && this.options.editors) {
             var editors = this.options.editors.map(function (u) {return u.id});
             for (var i = 0; i < this.options.editors.length; i++) formData.append('editors', this.options.editors[i].id);
+        }
+        if (!this.isAnonymousMap() && this.options.viewers) {
+            var viewers = this.options.viewers.map(function (u) {return u.id});
+            for (var i = 0; i < this.options.viewers.length; i++) formData.append('viewers', this.options.viewers[i].id);
         }
         if (this.isOwner() || this.isAnonymousMap()) formData.append('edit_status', this.options.edit_status);
         if (this.isOwner()) {

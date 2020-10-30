@@ -110,6 +110,8 @@ class Map(NamedModel):
     PUBLIC = 1
     OPEN = 2
     PRIVATE = 3
+    VIEWERS_AND_EDITORS = 4
+    AUTHENTICATED = 5
     BLOCKED = 9
     EDIT_STATUS = (
         (ANONYMOUS, _('Everyone can edit')),
@@ -120,6 +122,8 @@ class Map(NamedModel):
         (PUBLIC, _('everyone (public)')),
         (OPEN, _('anyone with link')),
         (PRIVATE, _('editors only')),
+        (VIEWERS_AND_EDITORS, _('viewers and editors')),
+        (AUTHENTICATED, _("authenticated")),
         (BLOCKED, _('blocked')),
     )
     slug = models.SlugField(db_index=True)
@@ -136,7 +140,8 @@ class Map(NamedModel):
     )
     modified_at = models.DateTimeField(auto_now=True)
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, blank=True, null=True, related_name="owned_maps", verbose_name=_("owner"), on_delete=models.PROTECT)
-    editors = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, verbose_name=_("editors"))
+    editors = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, verbose_name=_("editors"), related_name='map_editors')
+    viewers = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, verbose_name=_("viewers"), related_name='map_viewers')
     edit_status = models.SmallIntegerField(choices=EDIT_STATUS, default=OWNER, verbose_name=_("edit status"))
     share_status = models.SmallIntegerField(choices=SHARE_STATUS, default=PUBLIC, verbose_name=_("share status"))
     settings = JSONField(blank=True, null=True, verbose_name=_("settings"), default=dict)
@@ -184,6 +189,7 @@ class Map(NamedModel):
         return can
 
     def can_view(self, request):
+        can = False
         if self.share_status == self.BLOCKED:
             can = False
         elif self.owner is None:
@@ -192,9 +198,11 @@ class Map(NamedModel):
             can = True
         elif request.user == self.owner:
             can = True
-        else:
-            can = not (self.share_status == self.PRIVATE
-                       and request.user not in self.editors.all())
+        elif self.share_status == self.AUTHENTICATED and request.user.is_authenticated:
+            can = True
+        elif self.share_status == self.VIEWERS_AND_EDITORS and (request.user in self.editors.all() or request.user in self.viewers.all()): # Need to check for viewer groups as well
+            can = True
+            
         return can
 
     @property
@@ -214,6 +222,8 @@ class Map(NamedModel):
         new.save()
         for editor in self.editors.all():
             new.editors.add(editor)
+        for viewer in self.viewers.all():
+            new.viewers.add(viewer)
         for datalayer in self.datalayer_set.all():
             datalayer.clone(map_inst=new)
         return new

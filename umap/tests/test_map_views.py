@@ -44,6 +44,7 @@ def test_create(client, user, post_data):
             'url': '/en/user/Joe/'
         },
         'editors': [],
+        'viewers': [],
         'anonymous_edit_url': ('http://umap.org'
                                + created_map.get_anonymous_edit_url())
     }
