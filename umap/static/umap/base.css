@@ -430,7 +430,7 @@ i.info {
 }
 .with-transition {
     /*transition: top .7s, right .7s, left .7s, width .7s, visibility .7s;*/
-    transition: all .7s;
+    /*transition: all .7s;*/
 }
 
 .umap-delete:before, .umap-empty:before, .umap-to-polygon:before,
