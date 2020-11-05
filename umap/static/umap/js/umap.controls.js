@@ -842,6 +842,11 @@ L.U.LocateControl = L.Control.extend({
         this._map.locate({
             setView: true,
             enableHighAccuracy: true,
+            watch: false
+        });
+        this._map.locate({
+            setView: false,
+            enableHighAccuracy: true,
             watch: true
         });
         this._active = true;
