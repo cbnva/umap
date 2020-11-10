@@ -827,42 +827,79 @@ L.U.LocateControl = L.Control.extend({
     },
 
     onFound: function (e) {
-        this._map._geolocated_circle.setRadius(e.accuracy);
-        this._map._geolocated_circle.setLatLng(e.latlng);
+        this._lastLocation = e;
+        if(!this._locate){
+            this._map.stopLocate();
+            return;
+        }
+        if(e.accuracy > 1000){
+            this._map._geolocated_circle.removeFrom(this._map)
+            this._map._geolocated_circle.setRadius(e.accuracy);
+        } else {
+            this._map._geolocated_circle.setRadius(e.accuracy);
+            this._map._geolocated_circle.setLatLng(e.latlng);
+            this._map.addLayer(this._map._geolocated_circle);
+        }
         this._map._geolocated_marker.setLatLng(e.latlng);
-        this._map.addLayer(this._map._geolocated_circle);
         this._map.addLayer(this._map._geolocated_marker);
     },
 
     onError: function (e) {
-        this.ui.alert({content: L._('Unable to locate you.'), 'level': 'error'});
+        
     },
 
-    activate: function () {
+    follow: function () {
+        this._map.stopLocate();
         this._map.locate({
             setView: true,
             enableHighAccuracy: true,
-            watch: false
+            watch: true
         });
+        if(this._map.hasLayer(this._map._geolocated_marker)) {
+            var zoom = this._map.getBoundsZoom(this._map._geolocated_circle.getBounds())
+			this._map.setView(this._map._geolocated_marker._latlng, this._map._locateOptions.maxZoom ? Math.min(zoom, this._map._locateOptions.maxZoom) : zoom);
+        }
+        this._follow = true;
+        this._locate = true;
+        if(this._lastLocation){
+            this.onFound(this._lastLocation);
+        }
+    },
+
+    nofollow: function () {
         this._map.locate({
             setView: false,
             enableHighAccuracy: true,
             watch: true
         });
-        this._active = true;
+        this._follow = false;
+        this._locate = true;
+        if(this._lastLocation) {
+            this.onFound(this._lastLocation);
+        }
     },
 
-    deactivate: function () {
+    disable: function (e) {
+        this._map.locate({
+            setView: false,
+            enableHighAccuracy: false,
+            watch: false
+        });
         this._map._geolocated_marker.removeFrom(this._map)
         this._map._geolocated_circle.removeFrom(this._map)
         this._map.stopLocate();
-        this._active = false;
+        this._follow = false;
+        this._locate = false;
+        L.DomUtil.classIf(this._container, "follow", this._follow);
+        L.DomUtil.classIf(this._container, "pressed", this._locate);
+        e.preventDefault(e)
     },
 
     toggle: function () {
-        if (!this._active) this.activate();
-        else this.deactivate();
-        L.DomUtil.classIf(this._container, "active", this._active);
+        if (this._locate && !this._follow) this.follow();
+        else this.nofollow();
+        L.DomUtil.classIf(this._container, "follow", this._follow);
+        L.DomUtil.classIf(this._container, "pressed", this._locate);
     },
 
     onAdd: function (map) {
@@ -873,11 +910,13 @@ L.U.LocateControl = L.Control.extend({
 
         map._geolocated_circle = L.circle(map.getCenter(), {
             radius: 10,
-            weight: 0
+            weight: 0,
+            interactive: false,
         });
 
         map._geolocated_marker = L.marker(map.getCenter(), {
             icon: L.divIcon({className: 'geolocated', iconAnchor: [8, 9]}),
+            interactive: false,
         });
 
         map.on("locationerror", this.onError, this);
@@ -887,7 +926,13 @@ L.U.LocateControl = L.Control.extend({
         L.DomEvent
             .on(link, 'click', L.DomEvent.stop)
             .on(link, 'click', this.toggle, this)
+            .on(link, 'contextmenu', this.disable, this)
+            .on(link, 'contextmenu', L.DomEvent.stopPropagation)
             .on(link, 'dblclick', L.DomEvent.stopPropagation);
+
+        this.nofollow();
+        L.DomUtil.classIf(container, "follow", this._follow);
+        L.DomUtil.classIf(container, "pressed", this._locate);
 
         return container;
     }

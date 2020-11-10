@@ -81,8 +81,10 @@ a.umap-control-less {
 .leaflet-control-locate a {
     background-position: -1px -121px;
 }
-.leaflet-control-locate.active a {
+.leaflet-control-locate.follow a {
     background-position: -80px -161px;
+}
+.leaflet-control-locate.pressed a {
     box-shadow: 0 0 4px 0 black inset;
 }
 .leaflet-control-search a {
